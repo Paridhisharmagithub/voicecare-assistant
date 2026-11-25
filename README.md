@@ -275,6 +275,4 @@ voicecare-assistant/
 
 The browser captures microphone audio and sends it to a Pipecat backend over SmallWebRTC. Pipecat streams the audio through ElevenLabs Realtime STT, passes the transcript to Gemini for conversation and tool selection, and sends the response to ElevenLabs TTS for playback. When the caller requests an appointment action, Gemini invokes Python tools that validate the caller's spoken and confirmed phone number, check or update the SQLite database, and return the result to the conversation. The dashboard reads the same database and displays appointment changes alongside the live transcript.
 
-## Deployment
 
-This repository is designed to run locally for the assignment demonstration. A public deployment is optional; the assignment submission asks for the GitHub repository, a short recording of the running application, and a pipeline description. The browser voice pipeline requires reachable backend services, valid provider credentials, and working WebRTC connectivity, so deploying it is a separate hosting/networking task rather than a prerequisite for the local demo.
