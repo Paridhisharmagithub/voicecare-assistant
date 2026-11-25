@@ -134,6 +134,8 @@ function App() {
   const [availabilityReload, setAvailabilityReload] = useState(0);
   const [availabilityError, setAvailabilityError] = useState('');
   const [callStatus, setCallStatus] = useState('idle');
+  const [callScreenOpen, setCallScreenOpen] = useState(false);
+  const [callScreenPhase, setCallScreenPhase] = useState('idle');
   const [callError, setCallError] = useState('');
   const [muted, setMuted] = useState(false);
   const [speakerMuted, setSpeakerMuted] = useState(false);
@@ -143,6 +145,7 @@ function App() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const clientRef = useRef(null);
   const audioRef = useRef(null);
+  const phoneTranscriptRef = useRef(null);
   const callStartedAtRef = useRef(null);
 
   const navigate = useCallback((page) => {
@@ -193,6 +196,18 @@ function App() {
     return () => window.clearInterval(timer);
   }, [callStatus]);
 
+  useEffect(() => {
+    if (!callScreenOpen || !phoneTranscriptRef.current) return;
+    phoneTranscriptRef.current.scrollTop = phoneTranscriptRef.current.scrollHeight;
+  }, [transcript, callScreenOpen]);
+
+  useEffect(() => {
+    if (!callScreenOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [callScreenOpen]);
+
   useEffect(() => () => {
     if (clientRef.current) {
       Promise.resolve(clientRef.current.disconnect()).catch(() => {});
@@ -218,6 +233,8 @@ function App() {
     setMuted(false);
     setSpeakerMuted(false);
     setCallStatus('connecting');
+    setCallScreenOpen(true);
+    setCallScreenPhase('connecting');
 
     const client = new PipecatClient({
       transport: new SmallWebRTCTransport(),
@@ -227,10 +244,16 @@ function App() {
         onConnected: () => {
           callStartedAtRef.current = Date.now();
           setCallStatus('connected');
+          setCallScreenPhase('connected');
         },
-        onBotReady: () => setCallStatus('connected'),
+        onBotReady: () => {
+          callStartedAtRef.current = callStartedAtRef.current || Date.now();
+          setCallStatus('connected');
+          setCallScreenPhase('connected');
+        },
         onDisconnected: () => {
           setCallStatus('idle');
+          setCallScreenPhase('ended');
           setMuted(false);
           setSpeakerMuted(false);
           callStartedAtRef.current = null;
@@ -295,16 +318,22 @@ function App() {
         requestData: { transport: 'webrtc', enableDefaultIceServers: true },
       });
     } catch (error) {
-      setCallError(error?.message || 'Could not start the call. Check microphone permission and backend status.');
-      setCallStatus('error');
       try { await client.disconnect(); } catch { /* connection may not have started */ }
       if (clientRef.current === client) clientRef.current = null;
+      setCallError(error?.message || 'Could not start the call. Check microphone permission and backend status.');
+      setCallStatus('error');
+      setCallScreenPhase('error');
     }
   };
 
   const endCall = async () => {
     const client = clientRef.current;
+    const callWasActive = Boolean(client) || ['connecting', 'connected'].includes(callStatus);
     clientRef.current = null;
+    if (callWasActive) {
+      setCallScreenOpen(true);
+      setCallScreenPhase('ended');
+    }
     setCallStatus('idle');
     setMuted(false);
     setSpeakerMuted(false);
@@ -314,6 +343,20 @@ function App() {
     }
     if (audioRef.current) audioRef.current.srcObject = null;
     await loadData();
+  };
+
+  const dismissCallScreen = () => {
+    setCallScreenOpen(false);
+    if (callScreenPhase === 'ended' || callScreenPhase === 'error') {
+      setCallScreenPhase('idle');
+      setCallError('');
+      if (callStatus === 'error') setCallStatus('idle');
+    }
+  };
+
+  const showCallScreen = () => {
+    setCallScreenOpen(true);
+    setCallScreenPhase(callStatus === 'connected' ? 'connected' : 'connecting');
   };
 
   const toggleSpeaker = () => {
@@ -392,6 +435,19 @@ function App() {
   }, [appointments, appointmentFilter]);
 
   const activeAppointments = appointments.filter((item) => item.status === 'booked');
+  const callOutcome = useMemo(() => {
+    for (let index = transcript.length - 1; index >= 0; index -= 1) {
+      const message = transcript[index];
+      if (message.role !== 'assistant') continue;
+      const isBooking = /\b(?:i(?:'ve| have) booked|successfully booked|appointment is confirmed|booking confirmed)\b/i.test(message.text);
+      const isCancellation = /\b(?:successfully cancelled|successfully canceled|appointment has been cancelled|appointment has been canceled|your appointment is cancelled|your appointment is canceled)\b/i.test(message.text);
+      const reference = message.text.match(/\bVC-\d+\b/i)?.[0] || null;
+      if ((isBooking && reference) || isCancellation) {
+        return { kind: isCancellation ? 'cancelled' : 'booked', reference, text: message.text };
+      }
+    }
+    return null;
+  }, [transcript]);
   const selectedAvailabilityDoctor = doctors.find((doctor) => String(doctor.id) === String(availabilityDoctorId));
   const pageCopy = PAGE_COPY[activePage];
   const callLabel = callStatus === 'connected' ? 'Call in progress' : callStatus === 'connecting' ? 'Connecting' : callStatus === 'error' ? 'Connection issue' : 'Assistant ready';
@@ -688,7 +744,7 @@ function App() {
         {['connected', 'connecting'].includes(callStatus) && activePage !== 'assistant' && (
           <div className="active-call-banner" role="status">
             <span className="recording-dot" /> <strong>{callStatus === 'connected' ? 'VoiceCare call in progress' : 'Connecting to VoiceCare'}</strong>
-            <button onClick={() => navigate('assistant')}>Return to call</button>
+            <button onClick={() => { navigate('assistant'); showCallScreen(); }}>Return to call</button>
             <button className="active-call-end" onClick={endCall}><PhoneOff size={14} /> End call</button>
           </div>
         )}
@@ -700,6 +756,74 @@ function App() {
         )}
 
         {renderPage()}
+        {callScreenOpen && (
+          <div className="call-overlay">
+            <section className="call-dialog" role="dialog" aria-modal="true" aria-labelledby="phone-call-title">
+              <header className="call-dialog-header">
+                <div className="call-dialog-brand">
+                  <span className="call-dialog-brand-mark"><HeartPulse size={19} /></span>
+                  <span><strong>VoiceCare Clinic</strong><small>APPOINTMENT ASSISTANT</small></span>
+                </div>
+                <button className="call-dialog-dismiss" onClick={dismissCallScreen} aria-label={['connected', 'connecting'].includes(callStatus) ? 'Minimize call window' : 'Close call window'}>
+                  {['connected', 'connecting'].includes(callStatus) ? 'Minimize' : 'Close'} <X size={15} />
+                </button>
+              </header>
+
+              <div className={`phone-call-state ${callScreenPhase}`} aria-live="polite">
+                <div className={`phone-call-avatar ${callScreenPhase === 'connected' ? 'is-live' : ''}`}>
+                  {callScreenPhase === 'ended' ? <PhoneOff size={29} /> : callScreenPhase === 'error' ? <Wifi size={28} /> : <HeartPulse size={31} />}
+                </div>
+                <span className={`phone-call-status ${callScreenPhase}`}><span className="status-dot" />{callScreenPhase === 'connecting' ? 'CONNECTING' : callScreenPhase === 'connected' ? 'LIVE CALL' : callScreenPhase === 'ended' ? 'CALL ENDED' : 'CONNECTION ISSUE'}</span>
+                <h2 id="phone-call-title">{callScreenPhase === 'connecting' ? 'Connecting to VoiceCare' : callScreenPhase === 'connected' ? 'You’re speaking with VoiceCare' : callScreenPhase === 'ended' ? 'Your call has ended' : 'We couldn’t connect your call'}</h2>
+                <div className="phone-caller-identity"><strong>Browser caller</strong><span>VoiceCare Clinic · Appointment assistant</span></div>
+                {callScreenPhase === 'connected' || callScreenPhase === 'ended' ? (
+                  <div className="phone-call-duration"><span className={callScreenPhase === 'connected' ? 'recording-dot' : 'duration-dot'} />{formatDuration(elapsed)}</div>
+                ) : (
+                  <p className="phone-call-hint">{callScreenPhase === 'connecting' ? 'Preparing your microphone and secure audio connection…' : (callError || 'Check your microphone permission and backend connection, then try again.')}</p>
+                )}
+              </div>
+
+              {callOutcome && (
+                <div className={`phone-outcome-card ${callOutcome.kind}`} role="status">
+                  <span className="phone-outcome-icon"><Check size={15} /></span>
+                  <div><strong>{callOutcome.kind === 'booked' ? 'Appointment booked' : 'Appointment cancelled'}</strong>
+                    {callOutcome.reference && <small>Reference {callOutcome.reference}</small>}
+                    <p>{callOutcome.text}</p>
+                  </div>
+                </div>
+              )}
+
+              <section className="phone-transcript-section" aria-label="Live call transcript">
+                <div className="phone-transcript-heading"><div><span className="section-kicker">LIVE CONVERSATION</span><h3>Call transcript</h3></div><span className={`live-indicator ${callScreenPhase === 'connected' ? 'active' : ''}`}><span className="status-dot" />{callScreenPhase === 'connected' ? 'Listening' : callScreenPhase === 'connecting' ? 'Starting' : 'Ended'}</span></div>
+                <div className="phone-transcript-list" ref={phoneTranscriptRef} aria-live="polite">
+                  {transcript.length === 0 ? (
+                    <div className="phone-transcript-empty"><Headphones size={19} /><span>{callScreenPhase === 'connecting' ? 'Your conversation will appear here once connected.' : 'No conversation was recorded.'}</span></div>
+                  ) : transcript.map((message) => (
+                    <div className={`transcript-message ${message.role}`} key={`phone-${message.id}`}>
+                      <span className="message-avatar">{message.role === 'caller' ? <UserRound size={13} /> : <HeartPulse size={13} />}</span>
+                      <div className="message-content"><div className="message-meta"><strong>{message.role === 'caller' ? 'You' : 'VoiceCare'}</strong><time>{message.time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</time></div><p>{message.text}</p></div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {callScreenPhase === 'connected' ? (
+                <div className="phone-call-controls">
+                  <button className={`phone-control-button ${muted ? 'selected' : ''}`} onClick={toggleMute} aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}>{muted ? <MicOff size={19} /> : <Mic size={19} />}<span>{muted ? 'Unmute' : 'Mute'}</span></button>
+                  <button className="phone-end-call-button" onClick={endCall}><PhoneOff size={18} />End call</button>
+                  <button className={`phone-control-button ${speakerMuted ? 'selected' : ''}`} onClick={toggleSpeaker} aria-label={speakerMuted ? 'Turn speaker on' : 'Turn speaker off'}>{speakerMuted ? <VolumeX size={19} /> : <Volume2 size={19} />}<span>{speakerMuted ? 'Speaker off' : 'Speaker'}</span></button>
+                </div>
+              ) : callScreenPhase === 'connecting' ? (
+                <div className="phone-connecting-footer"><span className="loading-mark" />Please allow microphone access when prompted.</div>
+              ) : callScreenPhase === 'error' ? (
+                <div className="phone-ended-actions"><button className="phone-end-call-button" onClick={startCall}><Phone size={16} />Try again</button><button className="phone-close-button" onClick={dismissCallScreen}>Close</button></div>
+              ) : (
+                <div className="phone-ended-actions"><span>Thank you for contacting VoiceCare.</span><button className="phone-close-button" onClick={dismissCallScreen}>Close call window</button></div>
+              )}
+              <footer className="phone-dialog-footer"><ShieldCheck size={14} /><span>Your phone number is confirmed during the conversation before an appointment is changed.</span></footer>
+            </section>
+          </div>
+        )}
         <audio ref={audioRef} autoPlay playsInline className="visually-hidden" />
         <footer className="page-footer"><span>VoiceCare · Clinic assistant</span><span>Mock clinic data for demonstration only</span></footer>
       </main>

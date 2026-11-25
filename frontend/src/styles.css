@@ -413,3 +413,274 @@ button:focus-visible, a:focus-visible { outline: 3px solid rgba(113, 49, 79, .25
   .active-call-banner { flex-wrap: wrap; }
   .active-call-banner button { margin-left: 0; }
 }
+
+/* Phone-style live call experience */
+.call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(39, 29, 36, .43);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: call-overlay-in .18s ease-out;
+}
+.call-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 465px);
+  height: min(790px, calc(100vh - 40px));
+  height: min(790px, calc(100dvh - 40px));
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid #e8dfe4;
+  border-radius: 23px;
+  background: #fffefd;
+  box-shadow: 0 26px 90px rgba(35, 24, 31, .22);
+  animation: call-dialog-in .24s cubic-bezier(.2,.75,.25,1);
+}
+.call-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 66px;
+  padding: 12px 17px;
+  border-bottom: 1px solid #f0e9ed;
+  background: #fcfafb;
+}
+.call-dialog-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.call-dialog-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #efe2e9;
+  color: var(--plum);
+}
+.call-dialog-brand strong { display: block; color: #453943; font-size: 12px; font-weight: 700; }
+.call-dialog-brand small { display: block; margin-top: 3px; color: #a0949d; font-size: 8px; letter-spacing: .13em; }
+.call-dialog-dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 31px;
+  padding: 0 9px;
+  border: 1px solid #e9e0e5;
+  border-radius: 7px;
+  background: #fff;
+  color: #847780;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.call-dialog-dismiss:hover { border-color: #d9c5d1; color: var(--plum); background: #fbf7f9; }
+.phone-call-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 23px 20px 17px;
+  text-align: center;
+}
+.phone-call-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 12px;
+  border: 1px solid #e7d9e2;
+  border-radius: 50%;
+  background: #f6edf2;
+  color: var(--plum);
+}
+.phone-call-state.connecting .phone-call-avatar { animation: call-avatar-pulse 1.5s ease-in-out infinite; }
+.phone-call-avatar.is-live { border-color: #dfcbd7; background: #f1e6ec; }
+.phone-call-state.ended .phone-call-avatar { border-color: #e6e0e3; background: #f2f0ef; color: #827780; }
+.phone-call-state.error .phone-call-avatar { border-color: #efd7d7; background: #fbefef; color: #a64d52; }
+.phone-call-status { display: inline-flex; align-items: center; gap: 6px; color: #a1969e; font-size: 8px; font-weight: 750; letter-spacing: .13em; }
+.phone-call-status .status-dot { width: 6px; height: 6px; background: #b6abb2; }
+.phone-call-status.connecting .status-dot { background: #bd925c; animation: call-dot-pulse 1s ease-in-out infinite; }
+.phone-call-status.connected .status-dot { background: #3b946e; }
+.phone-call-status.ended .status-dot { background: #9c9299; }
+.phone-call-status.error .status-dot { background: #bd5a5f; }
+.phone-call-state h2 {
+  margin: 9px 0 0;
+  color: #302932;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -.45px;
+}
+.phone-caller-identity { display: grid; gap: 4px; margin-top: 8px; }
+.phone-caller-identity strong { color: #5b5059; font-size: 11px; font-weight: 650; }
+.phone-caller-identity span { color: #9d929b; font-size: 9px; }
+.phone-call-duration { display: inline-flex; align-items: center; gap: 7px; margin-top: 11px; color: #766a73; font-size: 11px; font-variant-numeric: tabular-nums; }
+.phone-call-duration .duration-dot { width: 6px; height: 6px; border-radius: 50%; background: #aaa0a6; }
+.phone-call-hint { max-width: 285px; margin: 10px 0 0; color: #988e96; font-size: 10px; line-height: 1.55; }
+.phone-outcome-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  flex: 0 0 auto;
+  margin: 0 17px 11px;
+  padding: 10px 11px;
+  border: 1px solid #dcebe1;
+  border-radius: 9px;
+  background: #f2f8f4;
+  color: #426c55;
+}
+.phone-outcome-card.cancelled { border-color: #ecdfe1; background: #faf3f3; color: #8d5960; }
+.phone-outcome-icon { display: grid; place-items: center; width: 23px; height: 23px; flex: 0 0 auto; border-radius: 50%; background: #e2f0e7; }
+.phone-outcome-card.cancelled .phone-outcome-icon { background: #f2e5e6; }
+.phone-outcome-card strong { display: block; font-size: 10px; font-weight: 700; }
+.phone-outcome-card small { display: block; margin-top: 3px; font-size: 9px; opacity: .8; }
+.phone-outcome-card p { margin: 4px 0 0; color: #756b72; font-size: 9px; line-height: 1.45; }
+.phone-transcript-section {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 125px;
+  margin: 0 17px;
+  overflow: hidden;
+  border: 1px solid #eee7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.phone-transcript-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 10px 11px 9px;
+  border-bottom: 1px solid #f0ebee;
+  background: #fcfafb;
+}
+.phone-transcript-heading h3 { margin: 4px 0 0; color: #403740; font-family: Georgia, "Times New Roman", serif; font-size: 16px; font-weight: 500; }
+.phone-transcript-heading .live-indicator { margin-top: 0; }
+.phone-transcript-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 10px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #e3dbe0 transparent;
+}
+.phone-transcript-list .transcript-message { gap: 7px; margin-bottom: 10px; }
+.phone-transcript-list .message-avatar { width: 22px; height: 22px; }
+.phone-transcript-list .message-meta { gap: 6px; margin-bottom: 3px; }
+.phone-transcript-list .message-meta strong { font-size: 9px; }
+.phone-transcript-list .message-meta time { font-size: 8px; }
+.phone-transcript-list .message-content p { padding: 7px 9px; font-size: 10px; line-height: 1.45; }
+.phone-transcript-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 100%; min-height: 105px; padding: 12px; color: #a0959d; text-align: center; }
+.phone-transcript-empty svg { color: #a27d91; }
+.phone-transcript-empty span { max-width: 230px; font-size: 9px; line-height: 1.5; }
+.phone-call-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex: 0 0 auto;
+  padding: 13px 15px 10px;
+}
+.phone-control-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 62px;
+  min-height: 52px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #7a7078;
+  font-size: 9px;
+}
+.phone-control-button:hover, .phone-control-button.selected { background: #f5edf2; color: var(--plum); }
+.phone-end-call-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 126px;
+  min-height: 43px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: #a83f4b;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(168, 63, 75, .16);
+}
+.phone-end-call-button:hover { background: #913541; }
+.phone-connecting-footer, .phone-ended-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-height: 58px;
+  padding: 10px 16px;
+  color: #958a92;
+  font-size: 9px;
+}
+.phone-connecting-footer .loading-mark { width: 16px; height: 16px; margin: 0; border-width: 2px; }
+.phone-ended-actions { justify-content: space-between; }
+.phone-ended-actions > span { color: #8c8189; }
+.phone-close-button {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid #e6d9e1;
+  border-radius: 7px;
+  background: #fcf8fa;
+  color: var(--plum);
+  font-size: 10px;
+  font-weight: 650;
+}
+.phone-close-button:hover { background: #f4eaf0; }
+.phone-ended-actions .phone-end-call-button { min-width: 112px; }
+.phone-dialog-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 10px 17px 13px;
+  border-top: 1px solid #f0eaee;
+  color: #9a9098;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.phone-dialog-footer svg { flex: 0 0 auto; color: var(--plum); }
+@keyframes call-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes call-dialog-in { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes call-avatar-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(113, 49, 79, .10); } 50% { box-shadow: 0 0 0 10px rgba(113, 49, 79, .035); } }
+@keyframes call-dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (max-width: 520px) {
+  .call-overlay { padding: 8px; }
+  .call-dialog { width: 100%; height: calc(100vh - 16px); height: calc(100dvh - 16px); min-height: 0; border-radius: 17px; }
+  .call-dialog-header { min-height: 58px; padding: 10px 13px; }
+  .phone-call-state { padding: 17px 14px 13px; }
+  .phone-call-avatar { width: 57px; height: 57px; margin-bottom: 9px; }
+  .phone-call-state h2 { font-size: 21px; }
+  .phone-transcript-section { margin: 0 11px; }
+  .phone-outcome-card { margin: 0 11px 9px; }
+  .phone-call-controls { gap: 10px; padding: 10px 9px 7px; }
+  .phone-dialog-footer { padding: 9px 12px 11px; }
+}
+@media (max-height: 620px) and (min-width: 521px) {
+  .call-dialog { height: calc(100dvh - 20px); min-height: 0; }
+  .phone-call-state { padding: 12px 16px 9px; }
+  .phone-call-avatar { width: 48px; height: 48px; margin-bottom: 7px; }
+  .phone-call-state h2 { margin-top: 6px; font-size: 19px; }
+  .phone-transcript-section { min-height: 100px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-overlay, .call-dialog, .phone-call-state.connecting .phone-call-avatar, .phone-call-status.connecting .status-dot { animation: none !important; }
+}
