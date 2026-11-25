@@ -2,6 +2,7 @@
 
 Updated multi-page React frontend for the VoiceCare voice appointment assistant. This package contains **only the frontend**; it does not replace or modify your existing backend.
 
+
 ## What's updated
 
 - Sidebar items now open separate views instead of scrolling through one long dashboard.

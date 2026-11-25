@@ -9,6 +9,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
+
 if not exist node_modules (
   echo Installing frontend dependencies for the first run...
   npm install

@@ -4,6 +4,7 @@ A browser-based clinic receptionist that can check doctor availability, book an 
 
 **Stack:** Pipecat · ElevenLabs Realtime STT · Google Gemini · ElevenLabs TTS · FastAPI · SQLAlchemy · SQLite · React · Vite · SmallWebRTC
 
+
 > **Demo scope:** This project uses mock clinic data and is intended for an internship assignment/demo. It is not connected to a real hospital, does not provide medical advice, and must not be used with real patient data.
 
 ## Features

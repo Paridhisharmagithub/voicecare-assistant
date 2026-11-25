@@ -144,6 +144,7 @@ async def bot(runner_args) -> None:
         )
         await worker.queue_frames([LLMRunFrame()])
 
+
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client) -> None:
         logger.info("VoiceCare browser call disconnected")
